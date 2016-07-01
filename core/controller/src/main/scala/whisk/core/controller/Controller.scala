@@ -114,6 +114,9 @@ object Controller {
         if (config.isValid) {
             val port = config.servicePort.toInt
             BasicHttpService.startService("controller", "0.0.0.0", port, new ServiceBuilder(config, instance))
+
+            // FIXME reuse ActorSystem
+            new whisk.core.controller.v2.API(config, "0.0.0.0", port + 1)(akka.actor.ActorSystem())
         }
     }
 }

@@ -16,3 +16,4 @@ RUN tar xf controller.tar
 CMD controller/bin/controller
 
 EXPOSE 8080
+EXPOSE 8081
