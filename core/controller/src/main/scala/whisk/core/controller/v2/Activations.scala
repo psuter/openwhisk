@@ -21,26 +21,24 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 
+import whisk.common.TransactionId
+import whisk.core.entity.WhiskActivation
+
 import spray.json._
 
-trait Activations {
+trait Activations extends AuthenticatedRoute {
 
     def activationRoutes = (
         activationListRoute
-        ~ activationDetailsRoute
     )
 
     val activationListRoute =
-        path("api" / "v2" / "namespace" / "_" / "activations") {
-            get {
-                complete(JsObject("error" -> JsBoolean(true)))
+        basicAuth(TransactionId.unknown) { auth =>
+            path("api" / "v2" / "namespace" / "_" / "activations") {
+                get {
+                    complete(JsObject("error" -> JsBoolean(true)))
+                }
             }
         }
 
-    val activationDetailsRoute =
-        path("api" / "v2" / "namespace" / "_" / "activations") {
-            get {
-                complete(JsObject("error" -> JsBoolean(true)))
-            }
-        }
 }
