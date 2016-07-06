@@ -31,19 +31,16 @@ import whisk.core.entity.WhiskAuthStore
 import whisk.core.entity.types.AuthStore
 
 /** A common trait for secured routes */
-trait AuthenticatedRoute extends Logging {
+trait Authentication extends Logging {
+    // FIXME
+    implicit val transactionId = TransactionId.unknown
 
     protected implicit val executionContext: ExecutionContext
 
     /** Database service to lookup credentials */
     protected val authStore: AuthStore
 
-    def basicAuth(implicit transid: TransactionId) = {
-        val f: Credentials=>Future[Option[WhiskAuth]] = c => validateCredentials(c)
-        authenticateBasicAsync(realm = "whisk rest service", authenticator = f)
-    }
-
-    protected def validateCredentials(credentials: Credentials)(implicit transid: TransactionId) : Future[Option[WhiskAuth]] = {
+    protected def validateCredentials(credentials: Credentials) : Future[Option[WhiskAuth]] = {
         val f = (credentials match {
             case p @ Credentials.Provided(user) =>
                 val uuid = UUID(user)

@@ -15,30 +15,92 @@
  */
 package whisk.core.controller.v2
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
 import akka.http._
 import akka.http.scaladsl._
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.unmarshalling.FromStringUnmarshaller
+import akka.stream.Materializer
 
 import whisk.common.TransactionId
 import whisk.core.entity.WhiskActivation
 
 import spray.json._
 
-trait Activations extends AuthenticatedRoute {
+import whisk.core.entitlement.Collection
+import whisk.core.entity.EntityName
+import whisk.core.entity.types.ActivationStore
+import whisk.core.entity.Namespace
+
+trait Activations extends Authentication {
+
+    protected lazy val collection = Collection(Collection.ACTIVATIONS)
+
+    protected val activationStore: ActivationStore
 
     def activationRoutes = (
         activationListRoute
     )
 
+    private implicit val entityNameUnmarshaller = new FromStringUnmarshaller[EntityName] {
+        def apply(value: String)(implicit ec: ExecutionContext, materializer: Materializer) : Future[EntityName] = {
+            // FIXME; look into that. Seems reasonable, but check if escaping, encoding, bla bla apply.
+            Future.successful(EntityName(value))
+        }
+    }
+
     val activationListRoute =
-        basicAuth(TransactionId.unknown) { auth =>
-            path("api" / "v2" / "namespace" / "_" / "activations") {
-                get {
-                    complete(JsObject("error" -> JsBoolean(true)))
+        path("api" / "v2" / "namespace" / "_" / "activations") {
+            get {
+                authenticateBasicAsync("whisk rest service", validateCredentials) { whiskAuth =>
+                    parameters('skip ? 0, 'limit ? collection.listLimit, 'count ? false, 'docs ? false, 'name.as[EntityName].?) {
+                        (skip, limit, count, docs, name) =>
+
+                        val cappedLimit = if(limit <= 0 || limit > 200) 200 else limit
+
+                        val activations = WhiskActivation.listCollectionInNamespace(activationStore, Namespace("_"), skip, cappedLimit, docs, None, None)
+
+                        // FIXME handle case where action name is given
+
+                        //complete(JsObject("error" -> JsBoolean(true)))
+
+                        val futureJsArray = activations.map { l =>
+                            val jsL = if(docs) {
+                                l.right.get.map { _.toExtendedJson }
+                            } else {
+                                l.left.get
+                            }
+                            JsArray(jsL : _*)
+                        }
+
+                        complete(futureJsArray)
+                    }
                 }
-            }
+                    /*
+
+                    parameter('skip ? 0, 'limit ? collection.listLimit, 'count ? false, 'docs ? false, 'name.as[EntityName]?, 'since.as[Instant]?, 'upto.as[Instant]?) {
+            (skip, limit, count, docs, name, since, upto) =>
+                // regardless of limit, cap at 200 records, client must paginate
+                val cappedLimit = if (limit == 0 || limit > 200) 200 else limit
+                val activations = name match {
+                    case Some(action) =>
+                        WhiskActivation.listCollectionByName(activationStore, namespace, action, skip, cappedLimit, docs, since, upto)
+                    case None =>
+                        WhiskActivation.listCollectionInNamespace(activationStore, namespace, skip, cappedLimit, docs, since, upto)
+                }
+
+                listEntities {
+                    activations map {
+                        l => if (docs) l.right.get map { _.toExtendedJson } else l.left.get
+                    }
+                }
         }
 
+                }*/
+            }
+        }
 }

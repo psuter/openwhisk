@@ -34,6 +34,7 @@ import whisk.core.WhiskConfig
 import whisk.core.WhiskConfig.whiskVersionDate
 import whisk.core.WhiskConfig.whiskVersionBuildno
 import whisk.core.controller.RestAPIVersion
+import whisk.core.entity.WhiskActivationStore
 import whisk.core.entity.WhiskAuthStore
 
 class API(config: WhiskConfig, host: String, port: Int)
@@ -44,6 +45,7 @@ class API(config: WhiskConfig, host: String, port: Int)
     implicit val materializer = ActorMaterializer()
 
     protected implicit val authStore = WhiskAuthStore.datastore(config)
+    protected implicit val activationStore = WhiskActivationStore.datastore(config)
 
     // FIXME: Don't want to extend and have all sorts of Spray definitions.
     // we'll need to decouple the notion of API from Spray, eventually.
@@ -58,7 +60,15 @@ class API(config: WhiskConfig, host: String, port: Int)
             }
         }
 
-    val allRoutes = infoRoute ~ activationRoutes
+    val allRoutes = {
+        extractRequest { request =>
+            extractLog { logger =>
+                logger.info(request.uri.toString)
+                infoRoute ~ activationRoutes
+            }
+        }
+
+    }
 
     val bindingFuture = Http().bindAndHandle(allRoutes, host, port)
 
