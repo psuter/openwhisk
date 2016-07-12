@@ -123,7 +123,8 @@ def pullActionContainerImages(whiskprops, invokerHost, tag):
         'whisk/pythonaction',
         'whisk/swiftaction',
         'whisk/swift3action',
-        'whisk/javaaction'
+        'whisk/javaaction',
+        'whisk/phpaction'
     ]
 
     if (dockerRegistry != ''):

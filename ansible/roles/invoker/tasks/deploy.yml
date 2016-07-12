@@ -10,6 +10,7 @@
       - 'whisk/swiftaction'
       - 'whisk/swift3action'
       - 'whisk/javaaction'
+      - 'whisk/phpaction'
 
 - name: "pull action images with tag {{docker_image_tag}}"
   shell: "docker pull {{docker_registry}}{{item}}:{{docker_image_tag}}"

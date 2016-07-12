@@ -9,6 +9,7 @@ include 'core:pythonAction'
 include 'core:swiftAction'
 include 'core:swift3Action'
 include 'core:javaAction'
+include 'core:phpAction'
 
 include 'services:consul'
 include 'services:kafka'
