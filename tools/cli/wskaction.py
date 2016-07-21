@@ -186,6 +186,9 @@ class Action(Item):
             elif args.artifact.endswith('.py'):
                 exe['kind'] = 'python'
                 exe['code'] = contents
+            elif args.artifact.endswith('.php'):
+                exe['kind'] = 'php'
+                exe['code'] = contents
             elif args.artifact.endswith('.jar'):
                 exe['kind'] = 'java'
                 exe['jar'] = base64.b64encode(contents)
