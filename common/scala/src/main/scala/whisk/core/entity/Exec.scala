@@ -78,6 +78,11 @@ protected[core] case class Swift3Exec(code: String) extends Exec(Exec.SWIFT3) {
     def size = code sizeInBytes
 }
 
+protected[core] case class PhpExec(code: String) extends Exec(Exec.PHP) {
+    val image = "whisk/phpaction"
+    def size = code sizeInBytes
+}
+
 protected[core] case class JavaExec(jar: String, main: String) extends Exec(Exec.JAVA) {
     val image = "whisk/javaaction"
     def size = (jar sizeInBytes) + (main sizeInBytes)
@@ -106,6 +111,7 @@ protected[core] object Exec
     protected[core] val SWIFT = "swift"
     protected[core] val SWIFT3 = "swift:3"
     protected[core] val JAVA = "java"
+    protected[core] val PHP = "php"
     protected[core] val BLACKBOX = "blackbox"
     protected[core] val SEQUENCE = "sequence"
     protected[core] val runtimes = Set(NODEJS, NODEJS6, PYTHON, SWIFT, SWIFT3, JAVA, BLACKBOX, SEQUENCE)
@@ -127,6 +133,8 @@ protected[core] object Exec
             case NodeJS6Exec(code, None)       => JsObject("kind" -> JsString(Exec.NODEJS6), "code" -> JsString(code))
             case NodeJS6Exec(code, Some(init)) => JsObject("kind" -> JsString(Exec.NODEJS6), "code" -> JsString(code), "init" -> JsString(init))
             case PythonExec(code)              => JsObject("kind" -> JsString(Exec.PYTHON), "code" -> JsString(code))
+            case PhpExec(code)                 => JsObject("kind" -> JsString(Exec.PHP), "code" -> JsString(code))
+
             case SwiftExec(code)               => JsObject("kind" -> JsString(Exec.SWIFT), "code" -> JsString(code))
             case Swift3Exec(code)              => JsObject("kind" -> JsString(Exec.SWIFT3), "code" -> JsString(code))
             case JavaExec(jar, main)           => JsObject("kind" -> JsString(Exec.JAVA), "jar" -> JsString(jar), "main" -> JsString(main))
@@ -190,6 +198,13 @@ protected[core] object Exec
                         case _                => throw new DeserializationException(s"'code' must be a string defined in 'exec' for '${Exec.PYTHON}' actions")
                     }
                     PythonExec(code)
+
+                case Exec.PHP =>
+                    val code: String = obj.getFields("code") match {
+                        case Seq(JsString(c)) => c
+                        case _                => throw new DeserializationException(s"'code' must be a string defined in 'exec' for '${Exec.PHP}' actions")
+                    }
+                    PhpExec(code)
 
                 case Exec.SWIFT =>
                     val code: String = obj.getFields("code") match {
