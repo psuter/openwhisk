@@ -132,6 +132,10 @@ case class WhiskAction(
                 JsObject(
                     "name" -> name.toJson,
                     "code" -> code.toJson)
+            case PhpExec(code) =>
+                JsObject(
+                    "name" -> name.toJson,
+                    "code" -> code.toJson)
             case JavaExec(jar, main) =>
                 JsObject(
                     "name" -> name.toJson,
