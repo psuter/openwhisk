@@ -94,6 +94,8 @@ import whisk.http.BasicHttpService
 import whisk.utils.ExecutionContextFactory
 import whisk.common.Logging
 
+import whisk.core.container.docker.DockerProxy
+
 /**
  * A kafka message handler that invokes actions as directed by message on topic "/actions/invoke".
  * The message path must contain a fully qualified action name and an optional revision id.
@@ -506,6 +508,7 @@ class Invoker(
     private val entityStore = WhiskEntityStore.datastore(config)
     private val authStore = WhiskAuthStore.datastore(config)
     private val activationStore = WhiskActivationStore.datastore(config)
+    private implicit val docker = new DockerProxy(config.selfDockerEndpoint)
     private val pool = new ContainerPool(config, instance, verbosity)
     private val activationCounter = new Counter() // global activation counter
     private val userActivationCounter = new TrieMap[String, Counter]

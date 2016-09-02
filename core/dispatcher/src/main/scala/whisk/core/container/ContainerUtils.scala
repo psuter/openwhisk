@@ -38,7 +38,7 @@ trait ContainerUtils extends Logging {
     /** Defines the docker host, optional **/
     val dockerhost: String
 
-    def makeEnvVars(env: Map[String, String]): Array[String] = {
+    private def makeEnvVars(env: Map[String, String]): Array[String] = {
         env.map {
             kv => s"-e ${kv._1}=${kv._2}"
         }.mkString(" ").split(" ").filter { x => x.nonEmpty }

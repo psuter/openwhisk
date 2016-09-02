@@ -50,6 +50,8 @@ import akka.event.Logging.LogLevel
 import akka.event.Logging.InfoLevel
 import whisk.core.entity.BlackBoxExec
 
+import whisk.core.container.docker.DockerProxy
+
 /**
  * A thread-safe container pool that internalizes container creation/teardown and allows users
  * to check out a container.
@@ -64,15 +66,15 @@ class ContainerPool(
     config: WhiskConfig,
     invokerInstance: Integer = 0,
     verbosity: LogLevel = InfoLevel,
-    standalone: Boolean = false)(implicit actorSystem: ActorSystem)
-    extends ContainerUtils {
+    standalone: Boolean = false)(implicit docker: DockerProxy, actorSystem: ActorSystem)
+    extends Logging {
 
     // These must be defined before verbosity is set
     private val datastore = WhiskEntityStore.datastore(config)
     private val authStore = WhiskAuthStore.datastore(config)
     setVerbosity(verbosity)
 
-    val dockerhost = config.selfDockerEndpoint
+    // val dockerhost = config.selfDockerEndpoint
 
     // Eventually, we will have a more sophisticated warmup strategy that does multiple sizes
     private val defaultMemoryLimit = MemoryLimit(MemoryLimit.STD_MEMORY)
@@ -708,8 +710,8 @@ class ContainerPool(
         info(this, s"Now removing ${candidates.length} leftover containers")
 
         candidates foreach { c =>
-            unpauseContainer(c.name)
-            rmContainer(c.name)
+            docker.unpause(c.name)
+            docker.rm(c.name)
         }
 
         info(this, s"Leftover container removal completed")
