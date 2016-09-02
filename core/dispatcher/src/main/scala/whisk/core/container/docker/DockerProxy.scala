@@ -20,12 +20,17 @@ import scala.util.Try
 import scala.language.postfixOps
 
 import akka.actor.ActorSystem
+import akka.event.Logging.ErrorLevel
 
 import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import whisk.common.Logging
+import whisk.common.LoggingMarkers
 import whisk.common.TransactionId
+import whisk.common.SimpleExec
+import whisk.common.PrintStreamEmitter
 
 import whisk.core.container.DockerOutput
 import whisk.core.container.ContainerAddr
@@ -40,7 +45,8 @@ import whisk.core.container.ContainerState
  *
  *  You only need one instance (and you shouldn't get more).
  */
-class DockerProxy(val dockerHost: String)(implicit actorSystem: ActorSystem) {
+class DockerProxy(val dockerHost: String)(implicit actorSystem: ActorSystem) extends Logging {
+    private implicit val emitter: PrintStreamEmitter = this
     private implicit val ec = actorSystem.dispatcher
 
     // Determines how to run docker. Failure to find a Docker binary implies
@@ -85,12 +91,12 @@ class DockerProxy(val dockerHost: String)(implicit actorSystem: ActorSystem) {
 
     // docker pause
     def pause(id: ContainerIdentifier)(implicit transid: TransactionId): DockerOutput = {
-        runCmd("pause", id.id)
+        runCmd(printLogOnError = false, "pause", id.id)
     }
 
     // docker unpause
     def unpause(id: ContainerIdentifier)(implicit transid: TransactionId): DockerOutput = {
-        runCmd("unpause", id.id)
+        runCmd(printLogOnError = false, "unpause", id.id)
     }
 
     // docker logs
@@ -126,6 +132,32 @@ class DockerProxy(val dockerHost: String)(implicit actorSystem: ActorSystem) {
     }
 
     private def runCmd(args: String*)(implicit transid: TransactionId): DockerOutput = {
-        ???
+        runCmd(printLogOnError = true, args: _*)
+    }
+
+    private def runCmd(printLogOnError: Boolean, args: String*)(implicit transid: TransactionId): DockerOutput = {
+        val start = transid.started(this, LoggingMarkers.INVOKER_DOCKER_CMD(args(0)))
+
+        try {
+            val fullCmd = dockerCmd ++ args
+
+            val (stdout, stderr, exitCode) = SimpleExec.syncRunCmd(fullCmd)
+
+            if (exitCode == 0) {
+                transid.finished(this, start)
+                DockerOutput(stdout.trim)
+            } else {
+                if (printLogOnError) {
+                    transid.failed(this, start, s"stdout:\n$stdout\nstderr:\n$stderr", ErrorLevel)
+                } else {
+                    transid.failed(this, start)
+                }
+                DockerOutput.unavailable
+            }
+        } catch {
+            case t: Throwable =>
+                transid.failed(this, start, "error: " + t.getMessage, ErrorLevel)
+                DockerOutput.unavailable
+        }
     }
 }
