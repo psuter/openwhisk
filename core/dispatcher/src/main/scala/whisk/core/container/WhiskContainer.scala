@@ -52,7 +52,6 @@ import whisk.core.container.docker.DockerProxy
  */
 class WhiskContainer(
     originalId: TransactionId,
-    dockerhost: String,
     key: ActionContainerId,
     containerName: ContainerName,
     image: String,
@@ -64,7 +63,7 @@ class WhiskContainer(
     args: Array[String] = Array(),
     val isBlackbox: Boolean,
     logLevel: LogLevel)(implicit docker: DockerProxy)
-    extends Container(originalId, dockerhost, key, Some(containerName), image, network, cpuShare, policy, limits, env, args, logLevel) {
+    extends Container(originalId, key, Some(containerName), image, network, cpuShare, policy, limits, env, args, logLevel) {
 
     var boundParams = JsObject() // Mutable to support pre-alloc containers
     var lastLogSize = 0L

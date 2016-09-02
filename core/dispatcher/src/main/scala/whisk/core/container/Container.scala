@@ -35,7 +35,6 @@ import whisk.core.container.docker.ContainerSettings
  */
 class Container(
     originalId: TransactionId,
-    val dockerhost: String,
     val key: ActionContainerId,
     containerName: Option[ContainerName],
     val image: String,
